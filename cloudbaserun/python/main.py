@@ -24,7 +24,7 @@ def handle():
     # map(sha1.update, list)
     hashcode = sha1.hexdigest()
     # 将加密后的字符串和signatrue对比，如果相同返回echostr,表示验证成功
-    print(hashcode + signature)
+    print(hashcode +'---'+ signature)
     if hashcode == signature:
         return echostr
     else:
