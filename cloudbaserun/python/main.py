@@ -1,6 +1,8 @@
 import os
 import hashlib
 from flask import Flask,request
+import xmltodict
+import time
 
 app = Flask(__name__)
 
@@ -25,5 +27,44 @@ def get_request(): # 接受微信发送的GET请求
     else:
         return ""
 
+@app.route('/', methods=["POST"])
+def post_request():
+    msg_xml_str = request.data
+    if not msg_xml_str:
+        return "success"
+    # 解析消息
+    msg_xml_dict_all = xmltodict.parse(msg_xml_str)
+    msg_xml_dict = msg_xml_dict_all["xml"]
+    # 获取消息类型, 消息内容等信息
+    msg_type = msg_xml_dict["MsgType"]
+    user_open_id = msg_xml_dict["FromUserName"]
+    # 需要回复的信息
+    response_dict = {
+        "xml": {
+            "ToUserName": msg_xml_dict["FromUserName"],
+            "FromUserName": msg_xml_dict["ToUserName"],
+            "CreateTime": int(time.time()),
+            "MsgType": "text",
+        }
+    }
+    # 当msg_type消息类型的值为event时, 表示该消息类型为推送消息, 例如微信用户 关注公众号(subscribe),取消关注(unsubscribe)
+    if msg_type == "event":
+        # 事件推送消息
+        msg_event = msg_xml_dict["Event"]
+        if msg_event == "subscribe":
+            # 用户关注公众号, 回复感谢信息
+            response_dict["xml"]["Content"] = "感谢您的关注!"
+            response_xml_str = xmltodict.unparse(response_dict)
+            return response_xml_str
+    elif msg_type == "text":
+        # 文本消息, 获取消息内容, 用户发送 哈哈, 回复 呵呵
+        msg_body = msg_xml_dict["Content"]
+        if msg_body == "哈哈":
+            response_dict["xml"]["Content"] = "呵呵"
+            response_xml_str = xmltodict.unparse(response_dict)
+            return response_xml_str
+    # 其他一律回复 success
+    return "success"
+
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=80)
+    app.run(debug=False, host='0.0.0.0', port=80)
