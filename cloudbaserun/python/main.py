@@ -7,8 +7,8 @@ import time
 app = Flask(__name__)
 
 @app.route('/')
- def hello():
-     return "hello"
+def hello():
+    return "hello"
 # def get_request(): # 接受微信发送的GET请求
 #     signature = request.args.get("signature")  # 先获取加密签名
 #     timestamp = request.args.get("timestamp")  # 获取时间戳
