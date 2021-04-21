@@ -36,31 +36,35 @@ def post_request():
     msg_xml_dict_all = ET.fromstring(msg_xml_str)
     # 获取消息类型, 消息内容等信息
     msg_type = msg_xml_dict_all.find('MsgType').text
-    # 需要回复的信息
-    response_dict = {
-        "xml": {
-            "ToUserName": msg_xml_dict_all.find('FromUserName').text,
-            "FromUserName": msg_xml_dict_all.find('ToUserName').text,
-            "CreateTime": int(time.time()),
-            "MsgType": "text",
-        }
-    }
+    # 需要回复的信息内容字典
+    response_dict = dict()
+    response_dict['ToUserName'] = msg_xml_dict_all.find('FromUserName').text
+    response_dict['FromUserName'] = msg_xml_dict_all.find('ToUserName').text
+    response_dict['CreateTime'] = int(time.time())
+    response_dict['MsgType'] = "text"
+    # 需要回复的信息模板
+    response_xml_str = """<xml>
+                            <ToUserName><![CDATA[{ToUserName}]]></ToUserName>
+                            <FromUserName><![CDATA[{FromUserName}]]></FromUserName>
+                            <CreateTime>{CreateTime}</CreateTime>
+                            <MsgType><![CDATA[text]]></MsgType>
+                            <Content><![CDATA[{Content}]]></Content>
+                        </xml>"""
     # 当msg_type消息类型的值为event时, 表示该消息类型为推送消息, 例如微信用户 关注公众号(subscribe),取消关注(unsubscribe)
     if msg_type == "event":
         # 事件推送消息
         msg_event = msg_xml_dict_all.find('Event').text
         if msg_event == "subscribe":
             # 用户关注公众号, 回复感谢信息
-            response_dict["xml"]["Content"] = "感谢您的关注!"
-            response_xml_str = response_dict
+            response_dict["Content"] = "感谢您的关注!"
+            response_xml_str = response_xml_str.format(**response_dict)
             return response_xml_str
     elif msg_type == "text":
         # 文本消息, 获取消息内容, 用户发送 哈哈, 回复 呵呵
         msg_body = msg_xml_dict_all.find('Content').text
         if msg_body == "哈哈":
-            response_dict["xml"]["Content"] = "呵呵"
-            response_xml_str = response_dict
-            return response_xml_str
+            response_dict["Content"] = "你成功了！"
+            return response_xml_str.format(**response_dict)
     # 其他一律回复 success
     return "success"
 
