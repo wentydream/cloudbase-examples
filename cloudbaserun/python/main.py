@@ -1,36 +1,33 @@
 import os
 import hashlib
-import web
+from flask import Flask,request
 
-urls = (
-    '/', 'Handle',
-)
+app = Flask(__name__)
 
-class Handle(object):
-    def GET(self):
-        try:
-            data = web.input()
-            if len(data) == 0:
-                return "hello, this is handle view"
-            signature = data.signature
-            timestamp = data.timestamp
-            nonce = data.nonce
-            echostr = data.echostr
-            token = "gzhtest" #请按照公众平台官网\基本配置中信息填写
+@app.route('/')
+def get_request(): # 接受微信发送的GET请求
+    signature = request.args.get("signature")  # 先获取加密签名
+    timestamp = request.args.get('timestamp')  # 获取时间戳
+    nonce = request.args.get("nonce")  # 获取随机数
+    echostr = request.args.get("echostr") # 获取随机字符串
+    token = "gzhtest" #自己设置的token
+    # 使用字典序排序（按照字母或数字的大小顺序进行排序）
+    list = [token, timestamp, nonce]
+    list.sort()
 
-            list = [token, timestamp, nonce]
-            list.sort()
-            sha1 = hashlib.sha1()
-            map(sha1.update, list)
-            hashcode = sha1.hexdigest()
-            print("handle/GET func: hashcode, signature: ", hashcode, signature)
-            if hashcode == signature:
-                return echostr
-            else:
-                return ""
-        except Exception:
-            return Exception
+    # 进行sha1加密
+    temp = ''.join(list)
+    sha1 = hashlib.sha1(temp.encode('utf-8'))
+    hashcode = sha1.hexdigest()
+    # 将加密后的字符串和signatrue对比，如果相同返回echostr,表示验证成功
+    if hashcode == signature:
+        return echostr
+    else:
+        return ""
 
-if __name__ == '__main__':
-    app = web.application(urls, globals())
+@app.route('/', methods=["POST"])
+def post_request():
+    pass
+
+if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=80)
