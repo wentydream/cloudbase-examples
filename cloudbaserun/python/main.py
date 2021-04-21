@@ -4,6 +4,7 @@ from flask import Flask,request
 import xml.etree.ElementTree as ET
 import time
 import requests
+import json
 
 app = Flask(__name__)
 
@@ -67,7 +68,10 @@ def post_request():
             response_dict["Content"] = "你成功了！"
             return response_xml_str.format(**response_dict)
         if msg_body == "天气":
-            rep = (requests.get('https://www.tianqiapi.com/free/day?appid=93511519&appsecret=mwIdNr9z')).json()
+            # 获取当前ip
+            ipdata = requests.get('https://www.tianqiapi.com/ip?appid=93511519&appsecret=mwIdNr9z')
+            ip = json.loads(ipdata.text)['ip']
+            rep = (requests.get('https://www.tianqiapi.com/free/day?appid=93511519&appsecret=mwIdNr9z&ip='+ip)).json()
             response_dict["Content"] ='城市：'+rep['city'] \
                                     +'\n天气：'+rep['wea'] \
                                     +'\n温度：'+rep['tem']+'°C' \
