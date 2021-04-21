@@ -1,7 +1,8 @@
 import os
 import hashlib
 from flask import Flask,request
-import xmltodict
+import xml.etree.ElementTree as ET
+import time
 
 app = Flask(__name__)
 
