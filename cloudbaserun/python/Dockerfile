@@ -10,7 +10,6 @@ COPY . ./
 # 安装依赖
 RUN pip install Flask gunicorn
 RUN pip install requests
-RUN pip install json
 
 # 启动 Web 服务
 # 这里我们使用了 gunicorn 作为 Server，1 个 worker 和 8 个线程
