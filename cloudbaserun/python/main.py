@@ -4,6 +4,7 @@ from flask import Flask,request
 import xml.etree.ElementTree as ET
 import time
 import requests
+from functools import lru_cache
 
 app = Flask(__name__)
 
@@ -56,8 +57,9 @@ def post_request():
         # 事件推送消息
         msg_event = msg_xml_dict_all.find('Event').text
         if msg_event == "subscribe":
+            userdata = (requests.get('https://api.weixin.qq.com/cgi-bin/user/info?access_token='+ getToken +'&openid='+ response_dict['ToUserName'] +'&lang=zh_CN')).json()
             # 用户关注公众号, 回复感谢信息
-            response_dict["Content"] = "欢迎" + response_dict['ToUserName'] + "，感谢您的关注!"
+            response_dict["Content"] = "欢迎" + userdata['nickname'] + "，感谢您的关注!"
             response_xml_str = response_xml_str.format(**response_dict)
             return response_xml_str
     elif msg_type == "text":
@@ -80,6 +82,23 @@ def post_request():
             return response_xml_str.format(**response_dict)
     # 其他一律回复 success
     return "success"
+
+# 加入lru_cache缓存微信access_token
+@lru_cache(None)
+def getAccessToken():
+    url = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={0}&secret={1}'.format("wx5026cd9f5be2dd71", "3d0ab13511e7839211fb6377a0315720")
+    r = requests.get(url)
+    access_token = r.json().get('access_token')
+    return access_token, time.time()
+
+def getToken():
+    token, t = getAccessToken()
+    if (time.time() - t) >= 7200:
+        getAccessToken.cache_clear()
+        token, t = getAccessToken()
+        return token
+    else:
+        return token
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0', port=80)
