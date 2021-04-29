@@ -57,8 +57,8 @@ def post_request():
         # 事件推送消息
         if "subscribe" == msg_xml_dict_all.find('Event').text:
             # 用户关注公众号, 回复感谢信息
-            user = getuser(msg_xml_dict_all.find('FromUserName').text)            
-            response_dict["Content"] = "{}欢迎{}\n感谢你的关注！".format(msg_xml_dict_all.find('FromUserName').text,user["nickname"])
+            # user = getuser(msg_xml_dict_all.find('FromUserName').text)
+            response_dict["Content"] = "欢迎{}\n感谢你的关注！".format(msg_xml_dict_all.find('FromUserName').text)
             return response_xml_str.format(**response_dict)
     elif msg_type == "text":
         # 文本消息, 获取消息内容
