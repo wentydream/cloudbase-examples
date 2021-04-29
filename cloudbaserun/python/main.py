@@ -4,6 +4,7 @@ from flask import Flask,request
 import xml.etree.ElementTree as ET
 import time
 import requests
+from functools import lru_cache
 
 app = Flask(__name__)
 
@@ -56,7 +57,8 @@ def post_request():
         # 事件推送消息
         if "subscribe" == msg_xml_dict_all.find('Event').text:
             # 用户关注公众号, 回复感谢信息
-            response_dict["Content"] = "我的世界从此以后多了一个你~"
+            user = getuser(msg_xml_dict_all.find('FromUserName').text)            
+            response_dict["Content"] = "{}欢迎{}\n感谢你的关注！".format(msg_xml_dict_all.find('FromUserName').text,user["nickname"])
             return response_xml_str.format(**response_dict)
     elif msg_type == "text":
         # 文本消息, 获取消息内容
@@ -71,14 +73,34 @@ def post_request():
             else:
                 response_dict["Content"] =('城市：{}\n天气：{}\n温度：{}°C\n高温：{}°C\n低温：{}°C\n风力：{}\n风向：{}\n风速：{}\n风力等级：{}\n空气质量：{}'
                     .format(rep['city'],rep['wea'],rep['tem'],rep['tem_day'],rep['tem_night'],rep['win_speed'],rep['win'],rep['win_meter'],rep['win_speed'],rep['air']))
-        if msg_body.find("限行") >= 0 or msg_body.find("限号") >= 0:  
+        if msg_body.find("限行") >= 0 or msg_body.find("限号") >= 0:
             rep = (requests.get('http://yw.jtgl.beijing.gov.cn/jgjxx/services/getRuleWithWeek')).json()
             if "请求成功" in rep['resultMsg']:
                 response_dict["Content"] = "".join(['{}({}):{}\n'.format(i['limitedTime'],i['limitedWeek'],i['limitedNumber']) for i in rep['result']])
+        if msg_body.find("测试") >= 0:
+            response_dict["Content"] = gettoken()
         return response_xml_str.format(**response_dict)
 
     # 其他一律回复 success
     return "success"
+
+# 加入lru_cache缓存微信access_token
+@lru_cache(None)
+def getAccessToken():
+    access_token = requests.get('https://dream-8ghak4ob7106e59b-1305617437.ap-shanghai.app.tcloudbase.com/getToken')
+    return access_token.text, time.time()
+
+def gettoken():
+    token, t = getAccessToken()
+    if (time.time() - t) >= 7200:
+        getAccessToken.cache_clear()
+        token, t = getAccessToken()
+        return token
+    else:
+        return token
+def getuser(openid):
+    return requests.get('https://api.weixin.qq.com/cgi-bin/user/info?access_token={}&openid={}&lang=zh_CN'.format(gettoken(),openid))
+    
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0', port=80)
