@@ -4,7 +4,6 @@ from flask import Flask,request
 import xml.etree.ElementTree as ET
 import time
 import requests
-from functools import lru_cache
 
 app = Flask(__name__)
 
@@ -55,50 +54,35 @@ def post_request():
     # 当msg_type消息类型的值为event时, 表示该消息类型为推送消息, 例如微信用户 关注公众号(subscribe),取消关注(unsubscribe)
     if msg_type == "event":
         # 事件推送消息
-        msg_event = msg_xml_dict_all.find('Event').text
-        if msg_event == "subscribe":
-            userdata = (requests.get('https://api.weixin.qq.com/cgi-bin/user/info?access_token='+ getToken +'&openid='+ response_dict['ToUserName'] +'&lang=zh_CN')).json()
+        if "subscribe" == msg_xml_dict_all.find('Event').text:
             # 用户关注公众号, 回复感谢信息
-            response_dict["Content"] = "欢迎" + userdata['nickname'] + "，感谢您的关注!"
-            response_xml_str = response_xml_str.format(**response_dict)
-            return response_xml_str
+            response_dict["Content"] = "我的世界从此以后多了一个你~"
+            return response_xml_str.format(**response_dict)
     elif msg_type == "text":
-        # 文本消息, 获取消息内容, 用户发送 哈哈, 回复 呵呵
+        # 文本消息, 获取消息内容
         msg_body = msg_xml_dict_all.find('Content').text
-        # 文本消息，获取天气
+        if msg_body.find("帮助") >= 0:
+            response_dict["Content"] ='''
+            地区天气 示例：北京天气 河北天气
+            尾号限行 示例：限行 限号
+            '''
         if msg_body.find("天气") >= 0:
-            if msg_body == "天气":
-                rep = (requests.get('https://www.tianqiapi.com/free/day?appid=93511519&appsecret=mwIdNr9z')).json()
-            else:
-                city = msg_body.replace("天气","")
-                rep = (requests.get('https://www.tianqiapi.com/free/day?appid=93511519&appsecret=mwIdNr9z&city=' + city)).json()
-
+            city = msg_body.replace("天气","")
+            rep = (requests.get('https://www.tianqiapi.com/free/day?appid=93511519&appsecret=mwIdNr9z&city=%s'%city)).json()
             if "errmsg" in rep:
                 response_dict["Content"] = rep['errmsg']
             else:
-                response_dict["Content"] =('城市：{}\n天气：{}\n温度：{}\n高温：{}\n低温：{}\n风力：{}\n风向：{}\n风速：{}\n风力等级：{}\n空气质量：{}'
-                    .format(rep['city'],rep['wea'],rep['tem']+'°C',rep['tem_day']+'°C',rep['tem_night']+'°C',rep['win_speed'],rep['win'],
-                    rep['win_meter'],rep['win_speed'],rep['air']))
+                response_dict["Content"] =('城市：{}\n天气：{}\n温度：{}°C\n高温：{}°C\n低温：{}°C\n风力：{}\n风向：{}\n风速：{}\n风力等级：{}\n空气质量：{}'
+                    .format(rep['city'],rep['wea'],rep['tem'],rep['tem_day'],rep['tem_night'],rep['win_speed'],rep['win'],rep['win_meter'],rep['win_speed'],rep['air']))
             return response_xml_str.format(**response_dict)
+        if msg_body.find("限行") >= 0 or msg_body.find("限号") >= 0:  
+            rep = (requests.get('http://yw.jtgl.beijing.gov.cn/jgjxx/services/getRuleWithWeek')).json()
+            if "请求成功" in rep['resultMsg']:
+                response_dict["Content"] = "".join(['{}({}):{}\n'.format(i['limitedTime'],i['limitedWeek'],i['limitedNumber']) for i in rep['result']])
+            return response_xml_str.format(**response_dict)
+
     # 其他一律回复 success
     return "success"
-
-# 加入lru_cache缓存微信access_token
-@lru_cache(None)
-def getAccessToken():
-    url = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={0}&secret={1}'.format("wx5026cd9f5be2dd71", "3d0ab13511e7839211fb6377a0315720")
-    r = requests.get(url)
-    access_token = r.json().get('access_token')
-    return access_token, time.time()
-
-def getToken():
-    token, t = getAccessToken()
-    if (time.time() - t) >= 7200:
-        getAccessToken.cache_clear()
-        token, t = getAccessToken()
-        return token
-    else:
-        return token
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0', port=80)
