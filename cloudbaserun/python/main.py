@@ -62,9 +62,7 @@ def post_request():
         # 文本消息, 获取消息内容
         msg_body = msg_xml_dict_all.find('Content').text
         if msg_body.find("帮助") >= 0:
-            response_dict["Content"] ='''
-                地区天气 示例：[北京天气][河北天气]
-                尾号限行 示例：[限行][限号]'''
+            response_dict["Content"] ='地区天气 示例：[北京天气]\n尾号限行 示例：[限行][限号]'
         if msg_body.find("天气") >= 0:
             city = msg_body.replace("天气","")
             rep = (requests.get('https://www.tianqiapi.com/free/day?appid=93511519&appsecret=mwIdNr9z&city=%s'%city)).json()
