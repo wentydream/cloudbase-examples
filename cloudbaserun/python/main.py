@@ -63,9 +63,8 @@ def post_request():
         msg_body = msg_xml_dict_all.find('Content').text
         if msg_body.find("帮助") >= 0:
             response_dict["Content"] ='''
-            地区天气 示例：北京天气 河北天气
-            尾号限行 示例：限行 限号
-            '''
+                地区天气 示例：[北京天气][河北天气]
+                尾号限行 示例：[限行][限号]'''
         if msg_body.find("天气") >= 0:
             city = msg_body.replace("天气","")
             rep = (requests.get('https://www.tianqiapi.com/free/day?appid=93511519&appsecret=mwIdNr9z&city=%s'%city)).json()
@@ -74,12 +73,11 @@ def post_request():
             else:
                 response_dict["Content"] =('城市：{}\n天气：{}\n温度：{}°C\n高温：{}°C\n低温：{}°C\n风力：{}\n风向：{}\n风速：{}\n风力等级：{}\n空气质量：{}'
                     .format(rep['city'],rep['wea'],rep['tem'],rep['tem_day'],rep['tem_night'],rep['win_speed'],rep['win'],rep['win_meter'],rep['win_speed'],rep['air']))
-            return response_xml_str.format(**response_dict)
         if msg_body.find("限行") >= 0 or msg_body.find("限号") >= 0:  
             rep = (requests.get('http://yw.jtgl.beijing.gov.cn/jgjxx/services/getRuleWithWeek')).json()
             if "请求成功" in rep['resultMsg']:
                 response_dict["Content"] = "".join(['{}({}):{}\n'.format(i['limitedTime'],i['limitedWeek'],i['limitedNumber']) for i in rep['result']])
-            return response_xml_str.format(**response_dict)
+        return response_xml_str.format(**response_dict)
 
     # 其他一律回复 success
     return "success"
