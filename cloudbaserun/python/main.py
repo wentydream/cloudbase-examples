@@ -6,6 +6,8 @@ import time
 import requests
 from functools import lru_cache
 
+header = {'User-Agent': "Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/20.0.1090.0 Safari/536.6"}
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -77,9 +79,12 @@ def post_request():
             rep = (requests.get('http://yw.jtgl.beijing.gov.cn/jgjxx/services/getRuleWithWeek')).json()
             if "请求成功" in rep['resultMsg']:
                 response_dict["Content"] = "".join(['{}({}):{}\n'.format(i['limitedTime'],i['limitedWeek'],i['limitedNumber']) for i in rep['result']])
+        if msg_body.find("清除缓存") >= 0 or msg_body.find("清理缓存") >= 0:
+             getAccessToken.cache_clear()
         if msg_body.find("测试") >= 0:
-            response_dict["Content"] = gettoken()
-        return response_xml_str.format(**response_dict)
+            response_dict["Content"] = gettoken()        
+        if "Content" in response_dict:
+            return response_xml_str.format(**response_dict)
 
     # 其他一律回复 success
     return "success"
@@ -87,7 +92,7 @@ def post_request():
 # 加入lru_cache缓存微信access_token
 @lru_cache(None)
 def getAccessToken():
-    access_token = requests.get('https://dream-8ghak4ob7106e59b-1305617437.ap-shanghai.app.tcloudbase.com/getToken')
+    access_token = requests.get('https://dream-8ghak4ob7106e59b-1305617437.ap-shanghai.app.tcloudbase.com/getToken',headers=header)
     return access_token.text, time.time()
 
 def gettoken():
